@@ -314,6 +314,10 @@ unip_annotation_nodes <- regex_match_map(data_frame = unip_annotation_nodes, reg
 patterns <- c(".*", "map[0-9]+", "[A-Z][^\"]+")
 kegg_annotation_nodes <- regex_match_map(data_frame = kegg_annotation_nodes, regex_vec = patterns)
 
+# community detection using GN algorithm:
+
+g_community <- edge.betweenness.community(g)
+
 # specify the parameters for the network visulization:
 #  shapes circle for target genes and sqare for potential genes:
 shapes() #all shapes available
@@ -410,4 +414,3 @@ plot(g,
      vertex.color=my_color, 
      vertex.label= vernames_to_show,  
      vertex.shape = v_shapes)
-as.data.frame(minimum.spanning.tree(g))
