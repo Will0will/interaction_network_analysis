@@ -1,5 +1,11 @@
-rm(list = ls())
+# Scripts for finding the potential regulations via QTL analysis using semantic web
 
+# ENV:
+
+#  Default environment './example_data'
+rm(list = ls())
+default_env_dir <- file.path(dirname(getwd()), "example_data")
+setwd(default_env_dir)
 
 # REQUIRED PACKAGES :
 
@@ -25,6 +31,8 @@ URI_paste <- function(URI_prefix, vec) {
   names(URIs) <- NULL
   return(URIs)
 }
+
+# ================ Function to make the queries: ======================== 
 
 potential_interaction_query_make <- function(target_genes_URIs, chr_num, start_pos, end_pos) {
   # Make the query of potential interactions between a list of genes and genes in a certain regiion
@@ -215,6 +223,7 @@ interaction_two_regions_query_make <- function(chr_num_1, start_pos_1, end_pos_1
   return(query)
 }
 
+# assemble the query bussiness: 
 data_require <- function(query_function, calls, endpoint) {
   # Call the function query make function and get the results from the endpoints   
   # 
@@ -233,6 +242,8 @@ data_require <- function(query_function, calls, endpoint) {
   res_df <- results$results
   return(res_df)
 }
+
+# ======================== Function for data cleaning ==============================
 
 regex_match <- function(vec, pattern) {
   # Match the text with reg express. only text matched with the expression will be return.
@@ -275,6 +286,8 @@ regex_match_map <- function(data_frame, regex_vec) {
 
 # MAIN:
 
+# ====== 1) make the graph using according to the QTL data and STRING db ===============
+
 # the list of gene is an example:
 list_of_genes <- read.csv(file = "list_of_gene.txt", header = T, stringsAsFactors = F)
 genes <- unlist(list_of_genes, use.names = F)
@@ -298,8 +311,10 @@ cutoff <- 0
 links <- interactions[, c(1, 2, 4)][interactions$weights > cutoff, ]
 g <- graph_from_data_frame(d = links, directed = F) 
 
-# view the vertexes inside the network
+# =================2) retrieve the annotations of Uniprot and KEGG for ================
+# =================genes serving as vertexes in the graph =============================
 
+# view the vertexes inside the network
 vertex_names <- V(g)$name
 
 # retrieve the annotations of proteomes and KEGG pw for the nodes
