@@ -6,6 +6,7 @@
 rm(list = ls())
 default_env_dir <- file.path(dirname(getwd()), "example_data")
 setwd(default_env_dir)
+# setwd("~/thesis/interaction_network_analyssis/example_data")
 
 # REQUIRED PACKAGES :
 
@@ -94,78 +95,6 @@ potential_interaction_query_make <- function(target_genes_URIs, chr_num, start_p
   return(query)
 }
 
-uniprot_annotation_retrival_query_make <- function(protein_URIs){
-  # Function to make the query for uniprot anotations of the input protein in URIs.
-  # 
-  # Args:
-  #  protein_URIs: the URIs used for the proteining in the triplet store
-  # 
-  # Return:
-  #  a query used for retrieving the uniprot anotations in strings
-  
-  values <- paste0(protein_URIs, collapse = " ")  # make the vector as the input for the query
-  query <- paste0(
-  "prefix obo: <http://purl.obolibrary.org/obo/> 
-  prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
-  prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
-  prefix dc: <http://purl.org/dc/elements/1.1/> 
-  prefix faldo: <http://biohackathon.org/resource/faldo#>
-  prefix sio: <http://semanticscience.org/resource/>
-  prefix core: <http://purl.uniprot.org/core/>
-  prefix so: <http://purl.obolibrary.org/obo/so#>
-  prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
-  
-  
-  SELECT DISTINCT ?protein_ids ?types ?comments 
-  WHERE{
-    VALUES ?proteins { ", values , " }
-    VALUES ?db { <http://purl.uniprot.org/database/KEGG> }
-    ?proteins a term:protein .
-    ?proteins dc:identifier ?protein_ids .
-    OPTIONAL{        
-             ?proteins term:SEQUENCE_MATCH ?uniprot_annos .
-             ?uniprot_annos core:annotation ?annotations .
-             ?annotations rdf:type ?types ;
-                          rdfs:comment ?comments .
-             }
-
-  }")
-  return(query)
-  }
-
-KEGG_annotation_retrival_query_make <- function(protein_URIs){
-  
-  values <- paste0(protein_URIs, collapse = " ")
-  query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
-  prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
-  prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
-  prefix dc: <http://purl.org/dc/elements/1.1/> 
-  prefix faldo: <http://biohackathon.org/resource/faldo#>
-  prefix sio: <http://semanticscience.org/resource/>
-  prefix core: <http://purl.uniprot.org/core/>
-  prefix so: <http://purl.obolibrary.org/obo/so#>
-  prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
-  
-  
-  SELECT DISTINCT ?protein_ids ?pw_ids ?pw_des 
-  WHERE{
-    VALUES ?proteins { ", values , " }
-    VALUES ?db { <http://purl.uniprot.org/database/KEGG> }
-    ?proteins a term:protein .
-    ?proteins dc:identifier ?protein_ids .
-     OPTIONAL{ 
-           ?proteins term:SEQUENCE_MATCH ?uniprot_annos .
-           ?uniprot_annos rdfs:seeAlso ?xrefs .
-           ?xrefs sio:SIO_000062 ?pathways .
-           ?pathways dc:description ?pw_des ;
-                     dc:identifier ?pw_ids .
-          ?xrefs core:database ?db .     
-     }
-  }")
-  return(query)
-}
-
-
 interaction_two_regions_query_make <- function(chr_num_1, start_pos_1, end_pos_1, chr_num_2, start_pos_2, end_pos_2) {
   query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
@@ -220,6 +149,130 @@ interaction_two_regions_query_make <- function(chr_num_1, start_pos_1, end_pos_1
     ?proteins_2 sio:SIO_000062 ?interaction .
     ?interaction sio:SIO_000300 ?weights .
     }")
+  return(query)
+}
+
+uniprot_annotation_retrival_query_make <- function(protein_URIs){
+  # Function to make the query for uniprot anotations of the input protein in URIs.
+  # 
+  # Args:
+  #  protein_URIs: the URIs used for the proteining in the triplet store
+  # 
+  # Return:
+  #  a query used for retrieving the uniprot anotations in strings
+  
+  values <- paste0(protein_URIs, collapse = " ")  # make the vector as the input for the query
+  query <- paste0(
+  "prefix obo: <http://purl.obolibrary.org/obo/> 
+  prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+  prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
+  prefix dc: <http://purl.org/dc/elements/1.1/> 
+  prefix faldo: <http://biohackathon.org/resource/faldo#>
+  prefix sio: <http://semanticscience.org/resource/>
+  prefix core: <http://purl.uniprot.org/core/>
+  prefix so: <http://purl.obolibrary.org/obo/so#>
+  prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
+  
+  
+  SELECT DISTINCT ?protein_ids ?types ?comments 
+  WHERE{
+    VALUES ?proteins { ", values , " }
+    VALUES ?db { <http://purl.uniprot.org/database/KEGG> }
+    ?proteins a term:protein .
+    ?proteins dc:identifier ?protein_ids .
+    OPTIONAL{        
+             ?proteins term:SEQUENCE_MATCH ?uniprot_annos .
+             ?uniprot_annos core:annotation ?annotations .
+             ?annotations rdf:type ?types ;
+                          rdfs:comment ?comments .
+             }
+
+  }")
+  return(query)
+  }
+
+KEGG_annotation_retrival_query_make <- function(protein_URIs){
+  
+  values <- paste0(protein_URIs, collapse = " ")
+  query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
+  prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+  prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
+  prefix dc: <http://purl.org/dc/elements/1.1/> 
+  prefix faldo: <http://biohackathon.org/resource/faldo#>
+  prefix sio: <http://semanticscience.org/resource/>
+  prefix core: <http://purl.uniprot.org/core/>
+  prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
+  
+  
+  SELECT DISTINCT ?protein_ids ?pw_ids ?pw_des 
+  WHERE{
+    VALUES ?proteins { ", values , " }
+    VALUES ?db { <http://purl.uniprot.org/database/KEGG> }
+    ?proteins a term:protein .
+    ?proteins dc:identifier ?protein_ids .
+     OPTIONAL{ 
+           ?proteins term:SEQUENCE_MATCH ?uniprot_annos .
+           ?uniprot_annos rdfs:seeAlso ?xrefs .
+           ?xrefs sio:SIO_000062 ?pathways .
+           ?pathways dc:description ?pw_des ;
+                     dc:identifier ?pw_ids .
+          ?xrefs core:database ?db .     
+     }
+  }")
+  return(query)
+}
+
+GO_annotation_retrival_query_make <- function(protein_URIs) {
+  
+  values <- paste0(protein_URIs, collapse = " ")
+  query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
+  prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+  prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
+  prefix dc: <http://purl.org/dc/elements/1.1/> 
+  prefix core: <http://purl.uniprot.org/core/>
+  prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
+  prefix goFormat: <http://www.geneontology.org/formats/oboInOwl#>
+  
+  SELECT DISTINCT ?protein_ids ?go_terms ?go_descrips 
+  WHERE{
+    VALUES ?proteins { ", values , " }
+    ?proteins a term:protein .
+    ?proteins dc:identifier ?protein_ids .
+     OPTIONAL{ 
+           ?proteins term:SEQUENCE_MATCH ?uniprot_annos .
+            ?uniprot_annos core:classifiedWith  ?classes .
+            ?classes rdfs:subClassOf+ ?ancestors .
+            ?ancestors goFormat:id ?go_terms ;
+                              rdfs:label ?go_descrips .
+     }
+  }")
+  return(query)
+}
+
+GO_hierarchy_retrival_query_make <- function(go_URIs) {
+  
+  values <- paste0(go_URIs, collapse = " ")
+  query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
+  prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+  prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
+  prefix dc: <http://purl.org/dc/elements/1.1/> 
+  prefix core: <http://purl.uniprot.org/core/>
+  prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
+  prefix goFormat: <http://www.geneontology.org/formats/oboInOwl#>
+  prefix oboGo: <http://purl.obolibrary.org/obo/>
+  
+  SELECT DISTINCT ?from_go_terms ?form_go_descrips ?to_go_terms ?to_go_descrips
+  WHERE{
+    VALUES ?go_from { ", values , " }
+    VALUES ?go_to {",  values ,"}
+
+    ?go_from rdfs:subClassOf ?go_offsprings .
+    ?go_from goFormat:id ?from_go_terms ;
+              rdfs:label ?form_go_descrips .
+    ?go_to goFormat:id ?to_go_terms ; 
+          rdfs:label ?to_go_descrips .
+    filter(?go_to = ?go_offsprings)
+  }")
   return(query)
 }
 
@@ -322,6 +375,7 @@ vertex_names <- V(g)$name
 protein_URIs <- paste0("protein:", vertex_names)
 unip_annotation_nodes <- data_require(uniprot_annotation_retrival_query_make, list(protein_URIs), endpoint)
 kegg_annotation_nodes <- data_require(KEGG_annotation_retrival_query_make, list(protein_URIs), endpoint)
+go_annotation_nodes <- data_require(GO_annotation_retrival_query_make, list(protein_URIs), endpoint)
 
 # data clean for annotation table
 patterns <- c(".*", "[A-Z|a-z]+_[A-Z|a-z|_]+", ".*")
@@ -333,6 +387,27 @@ kegg_annotation_nodes <- regex_match_map(data_frame = kegg_annotation_nodes, reg
 
 g_community <- edge.betweenness.community(g)
 
+# Calculate the betweeness centrality
+betw_centralities <- betweenness(g, v = V(g), directed = F, weights = NULL, normalized = T)
+betw_centralities <- betw_centralities[order(betw_centralities, decreasing = T)]
+betw_cutoff <- quantile(betw_centralities, probs = 0.8)
+nodes_with_higer_betw <- names(betw_centralities[betw_centralities > betw_cutoff])
+
+# 'bind' key word:
+bind_results <- unip_anno[grep(pattern = "bind", ignore.case = T, x = unip_anno$comments), ]
+binding_pro_ids <- unique(bind_results$protein_ids)
+bind_results$comments
+
+# 'cataly.*' key words
+cataly_results <- unip_anno[grep(pattern = "cataly", ignore.case = T, x = unip_anno$comments), ]
+cataly_pro_ids <- unique(cataly_results$protein_ids)
+
+# 'regulat.*' key words
+regulat_results <- unip_anno[grep(pattern = "regulat", ignore.case = T, x = unip_anno$comments), ]
+regulat_pro_ids <- unique(regulat_results$protein_ids)
+
+
+# plot the results  
 # specify the parameters for the network visulization:
 #  shapes circle for target genes and sqare for potential genes:
 shapes() #all shapes available
@@ -357,9 +432,8 @@ chars <- as.factor(chars)
 plot(g, vertex.shape = v_shapes, 
      vertex.color=chars,
      vertex.size = 7,
-      vertex.label=NA)
+     vertex.label=NA)
 col_legends <- as.numeric(as.factor(levels(as.factor(chars))))
-
 
 legend("topleft", 
        legend=levels(as.factor(chars)), 
@@ -400,32 +474,3 @@ legend("topleft",
        text.col=coul , 
        horiz = FALSE, 
        inset = c(0.1, 0.1))
-
-
-# Calculate the betweeness centrality
-betw_centralities <- betweenness(g, v = V(g), directed = F, weights = NULL, normalized = T)
-betw_centralities <- betw_centralities[order(betw_centralities, decreasing = T)]
-betw_cutoff <- quantile(betw_centralities, probs = 0.8)
-nodes_with_higer_betw <- names(betw_centralities[betw_centralities > betw_cutoff])
-
-# 'bind' key word:
-bind_results <- unip_anno[grep(pattern = "bind", ignore.case = T, x = unip_anno$comments), ]
-binding_pro_ids <- unique(bind_results$protein_ids)
-bind_results$comments
-
-# 'cataly.*' key words
-cataly_results <- unip_anno[grep(pattern = "cataly", ignore.case = T, x = unip_anno$comments), ]
-cataly_pro_ids <- unique(cataly_results$protein_ids)
-
-# 'regulat.*' key words
-regulat_results <- unip_anno[grep(pattern = "regulat", ignore.case = T, x = unip_anno$comments), ]
-regulat_pro_ids <- unique(regulat_results$protein_ids)
-
-
-# plot the results  
-vernames_to_show <- vertex_names[match(vertex_names, unique(c(binding_pro_ids, cataly_pro_ids, regulat_pro_ids)))]
-plot(g, 
-     vertex.size = 5, 
-     vertex.color=my_color, 
-     vertex.label= vernames_to_show,  
-     vertex.shape = v_shapes)

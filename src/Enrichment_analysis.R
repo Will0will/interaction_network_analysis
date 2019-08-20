@@ -1,27 +1,40 @@
 # Script to perform enrichment analysis
 
-pathway_enrichment_fisher_test <- function(cluster_vec, pw_label_vec, tar_cluster, tar_pathway) {
+enrichment_fisher_test <- function(cluster_vec, annotation_vec, tar_cluster, tar_annotation) {
   # Function to perform pathway enrichment analysis. 
   #
   # Args:
   #   cluster_vec: a vector containing which cluster a list of genes belong to
-  #   pw_label_vec: a vector containing which pathway a list of genes are annotated with
+  #   annotation_vec: a vector containing which functions a list of genes are annotated with
   #   tar_cluster: the targeted cluster of genes  
-  #   tar_pathway: indicate the pathway to see if the targeted cluster of genes are overrepreseneted in it
+  #   tar_annotation: indicate the functions to see if the targeted cluster of genes are overrepreseneted in it
   #   using fisher's exact test.
   #
   # Return:
   #  the result from fisher's exact test. 
   
   is_in_cluster <- cluster_vec == tar_cluster
-  is_in_pathway <- pw_label_vec == tar_pathway
+  is_in_pathway <- annotation_vec == tar_annotation
   cross_table <- table(is_in_cluster, is_in_pathway)
-  if(unique(dim(cross_table)[1] == dim(cross_table)[2])) {
+  if(dim(cross_table)[1] == dim(cross_table)[2]) {
     ft_res <- fisher.test(cross_table, alternative = "greater")$p.value
   } else {
     ft_res <- 1
   }
   return(ft_res)
+}
+
+enrichment_fisher_test_mass_apply <- function(cluster_vec, annotations_vec){
+  ft_res <- NULL
+  for (annotation in unique(annotations_vec)) {
+    row <- sapply(unique(cluster_vec), function(cluster){
+      enrichment_fisher_test(cluster_vec, annotations_vec, cluster, annotation)
+    })
+    ft_res <- rbind(ft_res, unlist(row))
+  }
+  row.names(ft_res) <- unique(annotations_vec)
+  colnames(ft_res) <- paste0("cluster_", unique(cluster_vec))
+  return(as.data.frame(ft_res))
 }
 
 map_a_to_b <- function(a, ind_a, ind_b){
@@ -44,6 +57,7 @@ color_generator <- function(color_size) {
 }
 
 
+
 # MAIN:
 
 g_membership <- g_community$membership
@@ -51,40 +65,30 @@ universe_labels <- kegg_annotation_nodes$pw_des
 
 # map the cluster to the equival length to the pathway list:
 
-mapped_membership <- map_a_to_b(a = membership, 
+mapped_membership <- map_a_to_b(a = g_membership, 
                                 ind_a = vertex_names, 
                                 ind_b = kegg_annotation_nodes$protein_ids)
 
 # remove the NAs in the list
 mapped_membership <- mapped_membership[!is.na(universe_labels)]
 universe_labels <- universe_labels[!is.na(universe_labels)]
-table(universe_labels)[order(table(universe_labels))]
-# list of patways for enrichment 
-pathways_for_test <- names(table(universe_labels[mapped_membership == 1]))
+table(universe_labels)[order(table(universe_labels), decreasing = T)]
 
 # carry out enrichment analysis
-ft_res <- NULL
-for (pw in pathways_for_test) {
-  p_vals <- NULL
-  for (cluster in unique(mapped_membership)) {
-    p <- pathway_enrichment_fisher_test(mapped_membership, universe_labels, cluster, pw)
-    p_vals <- c(p_vals, p)
-  }
-  print(length(p_vals))
-  ft_res <- rbind(ft_res, p_vals)
-}
-
-row.names(ft_res) <- pathways_for_test
-colnames(ft_res) <- paste0("cluster_", 1:max(mapped_membership))
+ft_res <- enrichment_fisher_test_mass_apply(mapped_membership, universe_labels)
+p_adj_res <- ft_res
+p_adj_res[,] <- p.adjust(unlist(p_adj_res), method = "BH")
 
 # the results:
-cluster_results <- which(ft_res < 0.1, arr.ind = T)[, 2]
+cluster_results <- which(p_adj_res < 0.05, arr.ind = T)[, 2]
+
 # remove meaningless annotations
+
 cluster_results <- cluster_results[names(cluster_results) != "Metabolic pathways"] 
 
 # plot:
 #  generate the colors
-color_size <- length(unique(membership))
+color_size <- length(unique(g_membership))
 col_for_cluster <- color_generator(color_size)
 
 
@@ -94,7 +98,7 @@ v_shapes <- c("circle",  "square")[shape_pos+1] # target-square; potential-circl
 
 # visualization 
 plot(g, vertex.shape = v_shapes, 
-     vertex.color=col_for_cluster[membership],
+     vertex.color=col_for_cluster[g_membership],
      vertex.size = 7,
      vertex.label=NA)
 
@@ -111,3 +115,55 @@ legend("topleft",
        horiz = FALSE, 
        inset = c(0.1, 0.1))
 
+# ================== GO =========================
+
+g_membership <- g_community$membership
+universe_labels <- go_annotation_nodes$go_terms
+
+# map the cluster to the equival length to the pathway list:
+
+mapped_membership <- map_a_to_b(a = g_membership, 
+                                ind_a = vertex_names, 
+                                ind_b = go_annotation_nodes$protein_ids)
+
+# remove the NAs in the list
+mapped_membership <- mapped_membership[!is.na(universe_labels)]
+universe_labels <- universe_labels[!is.na(universe_labels)]
+table(universe_labels)[order(table(universe_labels), decreasing = T)]
+
+
+# carry out enrichment analysis
+ft_res <- enrichment_fisher_test_mass_apply(mapped_membership, universe_labels)
+
+# the results:
+row.names(ft_res) <- unique(universe_labels)
+colnames(ft_res) <- paste0("cluster_", unique(mapped_membership))
+
+# adjust the p-values to the 
+p_adj_res <- ft_res
+p_adj_res[,] <- p.adjust(unlist(p_adj_res), method = "BH")
+
+# the results:
+cluster_results <- which(p_adj_res < 0.05, arr.ind = T)[, 2]
+
+# go enrich visualiztion:
+p_for_cluster_1 <- p_adj_res[,2]
+top_20_sig_gos <- row.names(p_adj_res)[order(p_for_cluster_1, decreasing = F)][1:20]
+
+# query the hierachies: 
+go_URIs <- paste0("oboGo:", gsub(":", "_" ,top_20_sig_gos))
+go_enrich_visualiztion <- data_require(GO_hierarchy_retrival_query_make, list(go_URIs), endpoint)
+
+# make links to visualize the results in hierarchy
+
+links <- cbind.data.frame(from = paste(go_enrich_visualiztion[, 1], go_enrich_visualiztion[, 2], sep = "\n" ), 
+                 to = paste(go_enrich_visualiztion[, 3], go_enrich_visualiztion[, 4], sep = "\n" ))
+g_go_hierachy <- graph_from_data_frame(d = links, directed = T)
+V(g_go_hierachy)$name
+plot(minimum.spanning.tree(g_go_hierachy))
+colors <- colorRampPalette(c("orange", "white"))(5)
+gredients <- Reduce(c, sapply(colors, function(x) {
+  rep(x, 5)
+}))
+gredients <- gredients[match(top_20_sig_gos, gsub("\n.*", "", V(g_go_hierachy)$name))]
+plot(minimum.spanning.tree(g_go_hierachy), vertex.color = gredients)
