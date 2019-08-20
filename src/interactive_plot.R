@@ -12,17 +12,23 @@ tubular_paste <- function(lists_of_tubulars, separation = "; ") {
 unip_annotation_nodes
 vertex_names
 length(vertex_names)
-
-table(unip_annotation_nodes$types)[order(table(unip_annotation_nodes$types))]
-
+protein_descriptions_nodes[protein_descriptions_nodes$protein_ids == "AT5G63420.1", ]
+table(protein_descriptions_nodes$types)[order(table(protein_descriptions_nodes$types))]
+annotation <- tapply(protein_descriptions_nodes$description, INDEX = protein_descriptions_nodes$protein_ids, unique)
+annotation <- annotation[match(vertex_names, names(annotation))]
+sapply()
+regex_match(annotation, ".*+")
 # make the nodes
 
-functional_anno <- unip_annotation_nodes[unip_annotation_nodes$types == "Function_Annotation", ]
+# if wanna see the annotation in details
+# functional_anno <- unip_annotation_nodes[unip_annotation_nodes$types == "Function_Annotation", ]
+# functional_anno <- map_a_to_b(a = functional_anno, ind_a = functional_anno$protein_ids, ind_b = vertex_names)
+# annotation <- tubular_paste(list(vertex_names, functional_anno$comments))
+
 betw_centralities <- map_a_to_b(betw_centralities, names(betw_centralities), vertex_names)
 btwness <- as.numeric(betw_centralities)*100
 btwness[btwness < 1] <- 0.1
-functional_anno <- map_a_to_b(a = functional_anno, ind_a = functional_anno$protein_ids, ind_b = vertex_names)
-annotation <- tubular_paste(list(vertex_names, functional_anno$comments))
+
 nodes <- cbind.data.frame(vertex_names,  group = g_membership, annotation = annotation, btwness)
 
 # make the links

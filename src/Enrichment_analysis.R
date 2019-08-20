@@ -117,7 +117,8 @@ p_adj_res <- ft_res
 p_adj_res[,] <- p.adjust(unlist(p_adj_res), method = "BH")
 
 # the results:
-cluster_results <- which(p_adj_res < 0.05, arr.ind = T)[, 2]
+positions <- which(p_adj_res < 0.05, arr.ind = T)
+cluster_results <- cbind(row.names(p_adj_res)[positions[, 1]], colnames(p_adj_res)[positions[, 2]])
 
 # remove meaningless annotations
 
@@ -186,7 +187,8 @@ p_adj_res[,] <- p.adjust(unlist(p_adj_res), method = "BH")
 cordi <- which(p_adj_res < 0.05, arr.ind = T)[, 2]
 results <- colnames(p_adj_res)[cordi]
 names(results) <- names(cordi)
-
+descriptions <- go_annotation_nodes$go_descrips[match(names(results),  go_annotation_nodes$go_terms)]
+View(cbind(descriptions, as.character(results), names(results)))
 # go enrich visualiztion:
 p_for_cluster_1 <- p_adj_res[,2]
 top_20_p_vals <- p_for_cluster_1[order(p_for_cluster_1, decreasing = F)][1:50]
@@ -194,18 +196,18 @@ top_20_sig_gos <- row.names(p_adj_res)[order(p_for_cluster_1, decreasing = F)][1
 
 # query the hierachies: 
 go_URIs <- paste0("oboGo:", gsub(":", "_" ,top_20_sig_gos))
-go_enrich_visualiztion <- data_require(GO_hierarchy_retrival_query_make, list(go_URIs), endpoint)
+go_hierachy_visualiztion <- data_require(GO_hierarchy_retrival_query_make, list(go_URIs), endpoint)
 
 # make links to visualize the results in hierarchy
 
-links_go_enrich <- cbind.data.frame(from = paste(go_enrich_visualiztion[, 1], go_enrich_visualiztion[, 2], sep = "\n" ), 
-                 to = paste(go_enrich_visualiztion[, 3], go_enrich_visualiztion[, 4], sep = "\n" ))
+links_go_enrich <- cbind.data.frame(from = paste(go_hierachy_visualiztion[, 1], go_hierachy_visualiztion[, 2], sep = "\n" ), 
+                 to = paste(go_hierachy_visualiztion[, 3], go_hierachy_visualiztion[, 4], sep = "\n" ))
 
 g_go_hierachy <- graph_from_data_frame(d = links_go_enrich, directed = T)
 V(g_go_hierachy)$label.cex <- 0.8
 colors <- colorRampPalette(c("orange", "white"))(30)
 ranges <- seq(0, 1, length.out = length(colors))
-col_vec <- color_range_match(top_20_p_vals, ranges_30, colors)
+col_vec <- color_range_match(top_20_p_vals, ranges, colors)
 
 plot(minimum.spanning.tree(g_go_hierachy),
      vertex.color = col_vec 

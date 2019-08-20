@@ -152,7 +152,7 @@ interaction_two_regions_query_make <- function(chr_num_1, start_pos_1, end_pos_1
   return(query)
 }
 
-uniprot_annotation_retrival_query_make <- function(protein_URIs){
+description_for_proteins_query_make <- function(protein_URIs){
   # Function to make the query for uniprot anotations of the input protein in URIs.
   # 
   # Args:
@@ -174,22 +174,25 @@ uniprot_annotation_retrival_query_make <- function(protein_URIs){
   prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
   
   
-  SELECT DISTINCT ?protein_ids ?types ?comments 
+  SELECT DISTINCT ?protein_ids ?descriptions
   WHERE{
-    VALUES ?proteins { ", values , " }
-    VALUES ?db { <http://purl.uniprot.org/database/KEGG> }
-    ?proteins a term:protein .
-    ?proteins dc:identifier ?protein_ids .
-    OPTIONAL{        
-             ?proteins term:SEQUENCE_MATCH ?uniprot_annos .
-             ?uniprot_annos core:annotation ?annotations .
-             ?annotations rdf:type ?types ;
-                          rdfs:comment ?comments .
-             }
-
+   VALUES ?proteins { ", values , " }
+   ?proteins dc:identifier ?protein_ids . 
+   OPTIONAL{
+            {
+            ?proteins (term:SEQUENCE_MATCH|term:CHECKSUM) ?uniprot_annos .
+            ?uniprot_annos dc:description ?descriptions .
+            ?uniprot_annos a core:Protein .
+            } UNION {
+             ?transcripts (core:translatedTo | so:translates_to) ?proteins .
+             ?transcripts (core:transcribedFrom | so:transcribed_from) ?genes .
+             ?genes dc:description ?descriptions .
+            }
+   }
+ 
   }")
   return(query)
-  }
+}
 
 KEGG_annotation_retrival_query_make <- function(protein_URIs){
   
@@ -317,7 +320,7 @@ regex_match <- function(vec, pattern) {
 }
 
 regex_match_map <- function(data_frame, regex_vec) {
-  # Apply ereach)ach column a regular expression formula to extract information out
+  # Apply each column a regular expression formula to extract information out
   # 
   # Args:
   #  data_frame: a dataframe containing the strings
@@ -373,13 +376,12 @@ vertex_names <- V(g)$name
 # retrieve the annotations of proteomes and KEGG pw for the nodes
 
 protein_URIs <- paste0("protein:", vertex_names)
-unip_annotation_nodes <- data_require(uniprot_annotation_retrival_query_make, list(protein_URIs), endpoint)
+protein_descriptions_nodes <- data_require(description_for_proteins_query_make, list(protein_URIs), endpoint)
 kegg_annotation_nodes <- data_require(KEGG_annotation_retrival_query_make, list(protein_URIs), endpoint)
 go_annotation_nodes <- data_require(GO_annotation_retrival_query_make, list(protein_URIs), endpoint)
-
+View(protein_descriptions_nodes )
 # data clean for annotation table
-patterns <- c(".*", "[A-Z|a-z]+_[A-Z|a-z|_]+", ".*")
-unip_annotation_nodes <- regex_match_map(data_frame = unip_annotation_nodes, regex_vec = patterns)
+
 patterns <- c(".*", "map[0-9]+", "[A-Z][^\"]+")
 kegg_annotation_nodes <- regex_match_map(data_frame = kegg_annotation_nodes, regex_vec = patterns)
 
