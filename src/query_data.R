@@ -317,7 +317,7 @@ regex_match <- function(vec, pattern) {
 }
 
 regex_match_map <- function(data_frame, regex_vec) {
-  # Apply each column a regular expression formula to extract information out
+  # Apply ereach)ach column a regular expression formula to extract information out
   # 
   # Args:
   #  data_frame: a dataframe containing the strings

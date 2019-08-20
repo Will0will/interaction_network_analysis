@@ -32,7 +32,7 @@ links$tar_proteins <- match(links$tar_proteins, vertex_names) - 1
 links$weights <- links$weights / 200
 
 # set the calls for forceNetwork
-calls <- list(
+force_net <- forceNetwork(
   # data frame inputs
   Links = links,  # linkage dataframe
   Nodes = nodes,  # the characters of the nodes
@@ -57,12 +57,17 @@ calls <- list(
   # opacityNoHover=10, # the degree of opacity when the mouse is not suspending on the nodes 
   zoom = T  # allow zoom(double click to )
   )
+force_net
+sankeyNetwork(Links = links,
+              Nodes = nodes, 
+              Source = "pot_proteins", 
+              Target = "tar_proteins", 
+              Value = "weights", 
+              NodeID = "vertex_names",
+              NodeGroup = "annotation", 
+              fontSize = 10)
 
-# change the default setting 
-# calls["NodeID"] <- "vertex_names"
 
-test <- do.call(what = forceNetwork, args = calls)
-test
 # onRender function enables d3.js commands to change the aesthetics: 
 onRender(test, ' function(el,x) {
          d3.selectAll(".node text").style("font-size", "10px").attr("visibility", "hidden").on("mouseover", function(d){console.log(d.name); })
