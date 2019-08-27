@@ -169,6 +169,7 @@ mapped_membership <- mapped_membership[!is.na(universe_labels)]
 universe_labels <- universe_labels[!is.na(universe_labels)]
 table(universe_labels)[order(table(universe_labels), decreasing = T)]
 
+table(universe_labels[mapped_membership == 1])
 
 # carry out enrichment analysis
 start_t = Sys.time()

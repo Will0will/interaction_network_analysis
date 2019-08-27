@@ -1,4 +1,4 @@
-# Scripts for finding the potential regulations via QTL analysis using semantic web
+# Scripts for finding the potential regulations via QTL analysis using GraphDB
 
 # ENV:
 
@@ -6,7 +6,7 @@
 rm(list = ls())
 default_env_dir <- file.path(dirname(getwd()), "example_data")
 setwd(default_env_dir)
-# setwd("~/thesis/interaction_network_analyssis/example_data")
+setwd("~/thesis/interaction_network_analyssis/example_data")
 
 # REQUIRED PACKAGES :
 
@@ -152,11 +152,49 @@ interaction_two_regions_query_make <- function(chr_num_1, start_pos_1, end_pos_1
   return(query)
 }
 
-description_for_proteins_query_make <- function(protein_URIs){
+
+uniprot_annotation_retrival_query_make <- function(protein_URIs){
   # Function to make the query for uniprot anotations of the input protein in URIs.
   # 
   # Args:
   #  protein_URIs: the URIs used for the proteining in the triplet store
+  # 
+  # Return:
+  #  a query used for retrieving the uniprot anotations in strings
+  
+  values <- paste0(protein_URIs, collapse = " ")  # make the vector as the input for the query
+  query <- paste0(
+    "prefix obo: <http://purl.obolibrary.org/obo/> 
+  prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+  prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
+  prefix dc: <http://purl.org/dc/elements/1.1/> 
+  prefix faldo: <http://biohackathon.org/resource/faldo#>
+  prefix sio: <http://semanticscience.org/resource/>
+  prefix core: <http://purl.uniprot.org/core/>
+  prefix so: <http://purl.obolibrary.org/obo/so#>
+  prefix protein: <http://rdf.ebi.ac.uk/resource/ensembl.protein/>
+  
+  
+  SELECT DISTINCT ?protein_ids ?types ?comments 
+  WHERE{
+    VALUES ?proteins { ", values , " }
+    ?proteins a term:protein .
+    ?proteins dc:identifier ?protein_ids .
+    OPTIONAL{        
+             ?proteins term:SEQUENCE_MATCH ?uniprot_annos .
+             ?uniprot_annos core:annotation ?annotations .
+             ?annotations rdf:type ?types ;
+                          rdfs:comment ?comments .
+             }
+  }")
+  return(query)
+}
+
+description_for_proteins_query_make <- function(protein_URIs){
+  # Function to make the query for uniprot anotations of the input protein in URIs.
+  # 
+  # Args:
+  #  protein_URIs: the URIs used for the protein in the triplet store
   # 
   # Return:
   #  a query used for retrieving the uniprot anotations in strings
@@ -279,7 +317,7 @@ GO_hierarchy_retrival_query_make <- function(go_URIs) {
   return(query)
 }
 
-# assemble the query bussiness: 
+# interation function for data retrieve bussiness: 
 data_require <- function(query_function, calls, endpoint) {
   # Call the function query make function and get the results from the endpoints   
   # 
@@ -377,10 +415,15 @@ vertex_names <- V(g)$name
 
 protein_URIs <- paste0("protein:", vertex_names)
 protein_descriptions_nodes <- data_require(description_for_proteins_query_make, list(protein_URIs), endpoint)
+unip_annotation_nodes <- data_require(uniprot_annotation_retrival_query_make, list(protein_URIs), endpoint)
 kegg_annotation_nodes <- data_require(KEGG_annotation_retrival_query_make, list(protein_URIs), endpoint)
 go_annotation_nodes <- data_require(GO_annotation_retrival_query_make, list(protein_URIs), endpoint)
-View(protein_descriptions_nodes )
+
+
 # data clean for annotation table
+
+patterns <- c(".*", "[A-Z|a-z]+_[A-Z|a-z|_]+", ".*")
+unip_annotation_nodes <- regex_match_map(data_frame = unip_annotation_nodes, regex_vec = patterns)
 
 patterns <- c(".*", "map[0-9]+", "[A-Z][^\"]+")
 kegg_annotation_nodes <- regex_match_map(data_frame = kegg_annotation_nodes, regex_vec = patterns)
@@ -392,87 +435,15 @@ g_community <- edge.betweenness.community(g)
 # Calculate the betweeness centrality
 betw_centralities <- betweenness(g, v = V(g), directed = F, weights = NULL, normalized = T)
 betw_centralities <- betw_centralities[order(betw_centralities, decreasing = T)]
-betw_cutoff <- quantile(betw_centralities, probs = 0.8)
-nodes_with_higer_betw <- names(betw_centralities[betw_centralities > betw_cutoff])
 
-# 'bind' key word:
-bind_results <- unip_anno[grep(pattern = "bind", ignore.case = T, x = unip_anno$comments), ]
-binding_pro_ids <- unique(bind_results$protein_ids)
-bind_results$comments
+# find the transcriptinal factor
 
-# 'cataly.*' key words
-cataly_results <- unip_anno[grep(pattern = "cataly", ignore.case = T, x = unip_anno$comments), ]
-cataly_pro_ids <- unique(cataly_results$protein_ids)
+tf_genes <- go_annotation_nodes$protein_ids[go_annotation_nodes$go_terms == "GO:0140110"] # transcription regulator activity
+tf_genes <- tf_genes[!is.na(tf_genes)]
 
-# 'regulat.*' key words
-regulat_results <- unip_anno[grep(pattern = "regulat", ignore.case = T, x = unip_anno$comments), ]
-regulat_pro_ids <- unique(regulat_results$protein_ids)
-
-
-# plot the results  
-# specify the parameters for the network visulization:
-#  shapes circle for target genes and sqare for potential genes:
-shapes() #all shapes available
-shape_pos <- vertex_names %in% links$tar_proteins
-v_shapes <- c("circle",  "square")[shape_pos+1]  # diffrent shape for target and potential genes 
-# colors stands for the pathway evolved:
-color_vec <- kegg_annotation_nodes$pw_des
-color_vec[is.na(color_vec)] <- "Unknown" 
-color_list <- tapply(X = color_vec, INDEX = kegg_annotation_nodes$protein_ids, c)
-#color_list <- sapply(color_list, as.factor)
-color_list <- color_list[match(vertex_names, names(color_list))]
-vex_values <- sapply(color_list, function(x) {
-  rep(1,length(x)) 
-})
-
-chars <- sapply(color_list, function(x) {
-  x[1]
-})
-
-chars <- as.factor(chars)
-
+v_shapes <- c("circle",  "square")[(vertex_names %in% tf_genes) +1]
 plot(g, vertex.shape = v_shapes, 
-     vertex.color=chars,
+     vertex.color=col_for_cluster[g_membership],
      vertex.size = 7,
      vertex.label=NA)
-col_legends <- as.numeric(as.factor(levels(as.factor(chars))))
 
-legend("topleft", 
-       legend=levels(as.factor(chars)), 
-       col = col_legends, 
-       bty = "n", 
-       pch=20 , 
-       pt.cex = 1.5, 
-       cex = 0.75, 
-       text.col=coul , 
-       horiz = FALSE, 
-       inset = c(0.1, 0.1))
-
-# select the names to show
-vernames_to_show <- links$tar_proteins[match(vertex_names, links$tar_proteins)]
-chars <- interactions$tar_loc_refs[match(vertex_names, interactions$tar_proteins)]
-chars[is.na(chars)] <- as.factor("chromosome 5")
-col_pos <- as.numeric(chars)
-coul <- brewer.pal(5, "Set1")
-my_color <- coul[col_pos]
-vertex_names[98]
-
-
-# plot the graph
-plot(g, 
-     vertex.size = 5, 
-     vertex.color=my_color, 
-     vertex.label= vernames_to_show,  
-     vertex.shape = v_shapes)
-
-
-legend("topleft", 
-       legend=levels(as.factor(chars)), 
-       col = coul, 
-       bty = "n", 
-       pch=20 , 
-       pt.cex = 1.5, 
-       cex = 0.75, 
-       text.col=coul , 
-       horiz = FALSE, 
-       inset = c(0.1, 0.1))

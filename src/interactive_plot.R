@@ -9,26 +9,30 @@ tubular_paste <- function(lists_of_tubulars, separation = "; ") {
 }
 
 
-unip_annotation_nodes
-vertex_names
-length(vertex_names)
-protein_descriptions_nodes[protein_descriptions_nodes$protein_ids == "AT5G63420.1", ]
-table(protein_descriptions_nodes$types)[order(table(protein_descriptions_nodes$types))]
-annotation <- tapply(protein_descriptions_nodes$description, INDEX = protein_descriptions_nodes$protein_ids, unique)
-annotation <- annotation[match(vertex_names, names(annotation))]
-sapply()
-regex_match(annotation, ".*+")
-# make the nodes
+
+# if show the descriptions
+
+annotation_list <- tapply(protein_descriptions_nodes$description, INDEX = protein_descriptions_nodes$protein_ids, unique)
+rearranged_anno_list <- annotation_list[match(vertex_names, names(annotation_list))]
+annotation_list_ready_to_paste <- lapply(rearranged_anno_list, function(vec) {
+  vec_for_further_removal <- vec[!grepl("Generated via", x = vec)]
+  res <- gsub(pattern = "\\[.*\\]", "",  vec_for_further_removal)
+  res <- gsub(pattern = " $", "",  res)
+  unique(res)
+})
+annotation <- paste(names(annotation_list_ready_to_paste), annotation_list_ready_to_paste, sep = ": ")
 
 # if wanna see the annotation in details
-# functional_anno <- unip_annotation_nodes[unip_annotation_nodes$types == "Function_Annotation", ]
+# table(unip_annotation_nodes$types)
+# uniprot_anno_category <- "Function_Annotation"
+# functional_anno <- unip_annotation_nodes[unip_annotation_nodes$types == uniprot_anno_category, ]
 # functional_anno <- map_a_to_b(a = functional_anno, ind_a = functional_anno$protein_ids, ind_b = vertex_names)
 # annotation <- tubular_paste(list(vertex_names, functional_anno$comments))
 
+#
 betw_centralities <- map_a_to_b(betw_centralities, names(betw_centralities), vertex_names)
 btwness <- as.numeric(betw_centralities)*100
 btwness[btwness < 1] <- 0.1
-
 nodes <- cbind.data.frame(vertex_names,  group = g_membership, annotation = annotation, btwness)
 
 # make the links
@@ -73,13 +77,14 @@ sankeyNetwork(Links = links,
               NodeGroup = "annotation", 
               fontSize = 10)
 
+saveNetwork(network = test, file = 'test.html')
 
 # onRender function enables d3.js commands to change the aesthetics: 
-onRender(test, ' function(el,x) {
-         d3.selectAll(".node text").style("font-size", "10px").attr("visibility", "hidden").on("mouseover", function(d){console.log(d.name); })
-         } ' )
+# onRender(test, ' function(el,x) {
+#          d3.selectAll(".node text").style("font-size", "10px").attr("visibility", "hidden").on("mouseover", function(d){console.log(d.name); })
+#          } ' )
 
-saveNetwork(network = test, file = 'test.html')
+
 
 # d3.selectAll(".node text").remove()
 # d3.selectAll(".node").append("foreignObject").attr("width", 200).attr("height", 50).attr("visibility", "hidden")
