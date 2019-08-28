@@ -4,6 +4,16 @@ library(htmlwidgets)
 
 
 tubular_paste <- function(lists_of_tubulars, separation = "; ") {
+  # Function to paste all the elements in colums with a sepration for each row.
+  #
+  # Args: 
+  #  lists_of_tubulars: object with 2 dimensions.
+  #  separation: the filed deliminator in between the elements contained in each row
+  #
+  # Return:
+  #  A vector contained pasted strings corresponding to the rows of 'lists_of_tubulars' 
+  
+  
   paste_df <- as.data.frame(lists_of_tubulars)
   results <- do.call(paste, c(paste_df, sep= separation))
   return(results)

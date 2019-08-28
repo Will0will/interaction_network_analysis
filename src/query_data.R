@@ -96,6 +96,16 @@ potential_interaction_query_make <- function(target_genes_URIs, chr_num, start_p
 }
 
 interaction_two_regions_query_make <- function(chr_num_1, start_pos_1, end_pos_1, chr_num_2, start_pos_2, end_pos_2) {
+  # Function to make the query the potential interacting genes endcoded in 2 different regions accross the genome. 
+  # 
+  # Args: 
+  #  chr_num_1(2): the chromesome ind in int where the target 1 (or 2) region is located
+  #  start_pos_1(2): the start position in int of target region 1 (or 2)
+  #  end_pos_1(2): the end position in int of target region 1 (or 2)
+  # 
+  # Return:
+  # the query in SPAQL to query pottential interactions by genes encoded in 2 designated regions.
+  
   query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
    prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
    prefix term: <http://rdf.ebi.ac.uk/terms/ensembl/> 
@@ -191,13 +201,13 @@ uniprot_annotation_retrival_query_make <- function(protein_URIs){
 }
 
 description_for_proteins_query_make <- function(protein_URIs){
-  # Function to make the query for uniprot anotations of the input protein in URIs.
+  # Function to make the query for uniprot descriptions of the input protein in URIs.
   # 
   # Args:
   #  protein_URIs: the URIs used for the protein in the triplet store
   # 
   # Return:
-  #  a query used for retrieving the uniprot anotations in strings
+  #  a query used for retrieving the uniprot titles for the proteins in strings
   
   values <- paste0(protein_URIs, collapse = " ")  # make the vector as the input for the query
   query <- paste0(
@@ -233,6 +243,13 @@ description_for_proteins_query_make <- function(protein_URIs){
 }
 
 KEGG_annotation_retrival_query_make <- function(protein_URIs){
+  # Function to make the query for KEGG annotation of the input protein in URIs.
+  # 
+  # Args:
+  #  protein_URIs: the URIs used for the protein in the triplet store
+  # 
+  # Return:
+  #  a query used for retrieving the KEGG pathways annotations for the proteins in strings
   
   values <- paste0(protein_URIs, collapse = " ")
   query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
@@ -264,6 +281,16 @@ KEGG_annotation_retrival_query_make <- function(protein_URIs){
 }
 
 GO_annotation_retrival_query_make <- function(protein_URIs) {
+  # Function to make the query for GO annotations of the input protein in URIs. With this quer
+  # the GO terms attached to the genes, togther with their parent node till the root will be retrived
+  # 
+  # Args:
+  #  protein_URIs: the URIs used for the protein in the triplet store
+  # 
+  # Return:
+  #  a query used for retrieving the GO annotations(and the nodes among the path to the root) 
+  #  attached to the proteins in strings
+  
   
   values <- paste0(protein_URIs, collapse = " ")
   query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
@@ -291,7 +318,15 @@ GO_annotation_retrival_query_make <- function(protein_URIs) {
 }
 
 GO_hierarchy_retrival_query_make <- function(go_URIs) {
-  
+  # Function to make the query for GO hierarchy retrieval of a given set of GO terms in URIs. 
+  # the hierachy will be returned in pairs if both nodes are among the given set.
+  # 
+  # Args:
+  #  GO_URIs: the URIs used for the GO terms in the triplet store
+  # 
+  # Return:
+  #  a query used for retrieving the GO term hierachy, if there are any, in a given set of GOs. 
+
   values <- paste0(go_URIs, collapse = " ")
   query <- paste0("prefix obo: <http://purl.obolibrary.org/obo/> 
   prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 

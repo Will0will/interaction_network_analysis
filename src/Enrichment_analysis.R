@@ -56,6 +56,17 @@ enrichment_fisher_test_mass_apply <- function(cluster_vec, annotations_vec){
 }
 
 map_a_to_b <- function(a, ind_a, ind_b){
+  # Function to map a index-based object(vector, df, matrix) to the order that matches a give ind serial.
+  # If the object has two dimensions, the rows will be used as the mapping targets. 
+  # 
+  # Args:
+  #  a: an indexable object for re-odering
+  #  ind_a: the index corresponding to each element in a.
+  #  ind_b: the index in the wanted order for ind_a to be mapped to
+  #
+  # Return:
+  #  The same object a in the correct order. 
+  
   if (is.data.frame(a) | is.matrix(a)){
     result <- a[match(ind_b, ind_a), ]
   } else {
@@ -65,6 +76,14 @@ map_a_to_b <- function(a, ind_a, ind_b){
 }
 
 color_generator <- function(color_size) {
+  # Function to randomly generate colors of a give size with RGB parameters in strs.
+  # 
+  # Args:
+  #  color_size: indicate how many colors you wanna generate in numeric
+  # 
+  # Return:
+  #  the RGB coordinates in str contained in a list 
+  
   R <- sample(1:225, size = color_size) / 225
   G <- sample(1:225, size = color_size) / 225
   B <- sample(1:225, size = color_size) / 225
@@ -75,6 +94,18 @@ color_generator <- function(color_size) {
 }
 
 color_range_match <- function(vals, range_vec, color_gradients){
+  # Function to assign the gradient colors for a list of values
+  # according to the range those values fall into.
+  
+  # Args:
+  #  vals: a vector of values to be matched with a gradient color.
+  #  range_vec: a vector indicating the gradiant range. eg: c(0.0, 0.5, 1.0) indicates
+  #  two ranges: 0 - 0.5 and 0.5 - 1.0
+  #  color_gradients: a set of gradiant color in desc (from absolute darkned to zero) in RGB cordinate
+  #
+  # Returns:
+  #  A vector of RGB coordinate corresponding to the input variable 'vals'. 
+  
   col_vec <- sapply(vals , function(x) {
     pos <- which(range_vec < x)[length(which(range_vec < x))]
     color_gradients[pos]
