@@ -1,4 +1,3 @@
-library(parallel)
 library(snowfall)
 
 # Script to perform enrichment analysis
