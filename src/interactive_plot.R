@@ -1,4 +1,5 @@
 library(networkD3)
+library(visNetwork)
 library(htmlwidgets)
 
 
@@ -29,16 +30,19 @@ annotation <- paste(names(annotation_list_ready_to_paste), annotation_list_ready
 # functional_anno <- map_a_to_b(a = functional_anno, ind_a = functional_anno$protein_ids, ind_b = vertex_names)
 # annotation <- tubular_paste(list(vertex_names, functional_anno$comments))
 
-#
+
 betw_centralities <- map_a_to_b(betw_centralities, names(betw_centralities), vertex_names)
 btwness <- as.numeric(betw_centralities)*100
 btwness[btwness < 1] <- 0.1
 nodes <- cbind.data.frame(vertex_names,  group = g_membership, annotation = annotation, btwness)
 
+
 # make the links
 links <- interactions[, c(1, 2, 4)][interactions$weights > cutoff, ]
 links$pot_proteins <- match(links$pot_proteins, vertex_names) - 1
 links$tar_proteins <- match(links$tar_proteins, vertex_names) - 1
+
+# if highlight the betweenness
 links$weights <- links$weights / 200
 
 # set the calls for forceNetwork
@@ -67,7 +71,11 @@ force_net <- forceNetwork(
   # opacityNoHover=10, # the degree of opacity when the mouse is not suspending on the nodes 
   zoom = T  # allow zoom(double click to )
   )
+
 force_net
+
+View(unip_annotation_nodes[unip_annotation_nodes$protein_ids == "AT5G63420.1", ])
+
 sankeyNetwork(Links = links,
               Nodes = nodes, 
               Source = "pot_proteins", 

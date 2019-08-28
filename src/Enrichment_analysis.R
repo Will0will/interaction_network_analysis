@@ -1,4 +1,5 @@
 library(parallel)
+library(snowfall)
 
 # Script to perform enrichment analysis
 
@@ -26,47 +27,33 @@ enrichment_fisher_test <- function(cluster_vec, annotation_vec, tar_cluster, tar
   return(ft_res)
 }
 
+
 enrichment_fisher_test_mass_apply <- function(cluster_vec, annotations_vec){
-  enrichment_fisher_test <- function(cluster_vec, annotation_vec, tar_cluster, tar_annotation) {
-    # Function to perform pathway enrichment analysis. 
-    #
-    # Args:
-    #   cluster_vec: a vector containing which cluster a list of genes belong to
-    #   annotation_vec: a vector containing which functions a list of genes are annotated with
-    #   tar_cluster: the targeted cluster of genes  
-    #   tar_annotation: indicate the functions to see if the targeted cluster of genes are overrepreseneted in it
-    #   using fisher's exact test.
-    #
-    # Return:
-    #  the result from fisher's exact test. 
-    
-    is_in_cluster <- cluster_vec == tar_cluster
-    is_in_pathway <- annotation_vec == tar_annotation
-    cross_table <- table(is_in_cluster, is_in_pathway)
-    if(dim(cross_table)[1] == dim(cross_table)[2]) {
-      ft_res <- fisher.test(cross_table, alternative = "greater")$p.value
-    } else {
-      ft_res <- 1
-    }
-    return(ft_res)
-  }
+  # Function to perform enrichment analysis for all the groups of genes in the background.
+  # 
+  # Args:
+  #  annotations_vec: a vector containing the annotations of the whole set of genes.
+  #  cluster_vec: a vector containing the cluster mapping to the 'annotations_vec' one-on-one.
+  #
+  # Return:
+  #  A matrix containing p-values with the annotation term as the rows, the clusters as columns
   
   ft_res <- NULL
+  sfInit(parallel = TRUE, cpus = detectCores() - 1)
+  sfExport("enrichment_fisher_test")
   for (cluster in unique(cluster_vec)) {
-    cl <- makeCluster(4)
-    row_segs <- parLapply(cl, unique(annotations_vec), function(annotation){
+    row_segs <- sfLapply(unique(annotations_vec), function(annotation){
       enrichment_fisher_test(cluster_vec, annotations_vec, cluster, annotation)
     })
     row <- do.call(rbind, row_segs)
     ft_res <- cbind(ft_res, unlist(row))
-    stopCluster(cl) 
+    
   }
+  sfStop() 
   row.names(ft_res) <- unique(annotations_vec)
   colnames(ft_res) <- paste0("cluster_", unique(cluster_vec))
   return(as.data.frame(ft_res))
 }
-
-
 
 map_a_to_b <- function(a, ind_a, ind_b){
   if (is.data.frame(a) | is.matrix(a)){
@@ -122,7 +109,7 @@ cluster_results <- cbind(row.names(p_adj_res)[positions[, 1]], colnames(p_adj_re
 
 # remove meaningless annotations
 
-cluster_results <- cluster_results[names(cluster_results) != "Metabolic pathways"] 
+cluster_results <- cluster_results[cluster_results[, 1] != "Metabolic pathways", ] 
 
 # plot:
 #  generate the colors
@@ -140,11 +127,9 @@ plot(g, vertex.shape = v_shapes,
      vertex.size = 7,
      vertex.label=NA)
 
-
-
 legend("topleft", 
-       legend= names(cluster_results), 
-       col = col_for_cluster[cluster_results], 
+       legend= cluster_results[, 1], 
+       col = col_for_cluster[positions[, 2][names(positions[, 2]) != "Metabolic pathways"]], 
        bty = "n", 
        pch=20 , 
        pt.cex = 1.5, 
@@ -185,11 +170,13 @@ p_adj_res <- ft_res
 p_adj_res[,] <- p.adjust(unlist(p_adj_res), method = "BH")
 
 # the results:
-cordi <- which(p_adj_res < 0.05, arr.ind = T)[, 2]
+cordi <- which(p_adj_res < 0.025, arr.ind = T)[, 2]
 results <- colnames(p_adj_res)[cordi]
 names(results) <- names(cordi)
 descriptions <- go_annotation_nodes$go_descrips[match(names(results),  go_annotation_nodes$go_terms)]
 View(cbind(descriptions, as.character(results), names(results)))
+
+
 # go enrich visualiztion:
 p_for_cluster_1 <- p_adj_res[,2]
 top_20_p_vals <- p_for_cluster_1[order(p_for_cluster_1, decreasing = F)][1:50]
